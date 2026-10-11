@@ -1,0 +1,14 @@
+[project]
+name = "ytexp"
+version = "0.1.0"
+description = "Download all architecture variants of a YouTube APK from APKMirror via Camoufox"
+requires-python = ">=3.11"
+dependencies = [
+    "fastapi==0.143.0",
+    "uvicorn[standard]==0.54.0",
+    "camoufox[geoip]==0.5.8",
+    "uvloop==0.23.0; sys_platform != 'win32'",
+]
+
+[tool.uv]
+package = false

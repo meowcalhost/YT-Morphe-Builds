@@ -14,6 +14,8 @@ permissions:
 jobs:
   build:
     runs-on: ubuntu-latest
+    env:
+      GITHUB_TOKEN: ${{ github.token }}  # authenticate GitHub API calls (morphe.py, camoufox, gh) -> 5000/hr not 60
     steps:
       - uses: actions/checkout@v4
 
@@ -55,6 +57,19 @@ jobs:
         run: |
           uv sync
           uv run camoufox fetch
+
+      - name: Restore signing keystore
+        if: steps.patches.outputs.exists == 'false'
+        env:
+          KS_B64: ${{ secrets.MORPHE_KEYSTORE_B64 }}
+        run: |
+          if [ -n "$KS_B64" ]; then
+            echo "$KS_B64" | base64 -d > "$RUNNER_TEMP/morphe.keystore"
+            echo "MORPHE_KEYSTORE=$RUNNER_TEMP/morphe.keystore" >> "$GITHUB_ENV"
+            echo "Signing with the persisted keystore (updates install in place)."
+          else
+            echo "::warning::MORPHE_KEYSTORE_B64 secret not set - builds use a throwaway key and won't update over a prior release."
+          fi
 
       - name: Build per-arch patched APKs
         if: steps.patches.outputs.exists == 'false'

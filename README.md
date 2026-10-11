@@ -1,5 +1,7 @@
 # YT-Morphe-Builds
 
+> **Install [MicroG-RE](https://github.com/MorpheApp/MicroG-RE/releases/tag/latest) first** — the patched apps need Morphe's GmsCore fork to sign in and run. Download the latest MicroG-RE release and install it, then install any build below.
+
 Automated per-architecture [Morphe](https://github.com/MorpheApp)-patched builds of
 **YouTube** and **YouTube Music**. A scheduled GitHub Action watches for new Morphe
 patch releases, resolves the latest compatible app version, downloads the per-arch

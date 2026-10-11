@@ -1,0 +1,14 @@
+# deps / env
+.venv/
+__pycache__/
+*.pyc
+.env
+
+# build inputs + outputs (CI re-fetches / regenerates these)
+tools/
+downloads/
+dist/
+
+# local agent + editor state
+.claude/
+Agents/

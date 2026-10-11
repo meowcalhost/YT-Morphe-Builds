@@ -89,6 +89,26 @@ def find_java() -> str:
     return "java"  # last resort; errors clearly if < 21
 
 
+def _keystore_args() -> list[str]:
+    """Sign every build with a persisted keystore when MORPHE_KEYSTORE points at one.
+    Without it morphe generates a throwaway key per run, so each release is signed
+    with a different key and Android rejects an in-place update ("App not installed")
+    until the old build is uninstalled. Alias/passwords default to how morphe makes
+    its own keystore (alias "Morphe", empty passwords); override via env only if yours
+    differs."""
+    ks = os.environ.get("MORPHE_KEYSTORE")
+    if not ks or not Path(ks).is_file():
+        return []
+    args = [f"--keystore={ks}",
+            f"--keystore-entry-alias={os.environ.get('MORPHE_KEYSTORE_ALIAS', 'Morphe')}"]
+    for env, flag in (("MORPHE_KEYSTORE_PASSWORD", "--keystore-password"),
+                      ("MORPHE_KEYSTORE_ENTRY_PASSWORD", "--keystore-entry-password")):
+        v = os.environ.get(env)
+        if v is not None:
+            args.append(f"{flag}={v}")
+    return args
+
+
 def patch_apk(input_apk, out_dir=None, java=None) -> dict:
     """Apply the latest Morphe patches to a single APK. Returns {ok, output, log}.
     Morphe writes <stem>-patched.apk next to the input and signs it itself."""
@@ -98,7 +118,7 @@ def patch_apk(input_apk, out_dir=None, java=None) -> dict:
     if not src.is_file():
         raise FileNotFoundError(src)
 
-    cmd = [java, "-jar", str(jar), "patch", "-p", str(mpp), str(src)]
+    cmd = [java, "-jar", str(jar), "patch", *_keystore_args(), "-p", str(mpp), str(src)]
     proc = subprocess.run(cmd, capture_output=True, text=True, timeout=1800)
     full = proc.stdout + proc.stderr
     log = full[-4000:]
@@ -167,6 +187,16 @@ if __name__ == "__main__":
         "com.google.android.apps.youtube.music": "9.20.53",
         "com.google.android.youtube": "21.16.256",
     }
+
+    # keystore args: off without the env, full flag set with it
+    os.environ.pop("MORPHE_KEYSTORE", None)
+    assert _keystore_args() == []
+    import tempfile
+    with tempfile.NamedTemporaryFile(suffix=".keystore", delete=False) as tf:
+        os.environ["MORPHE_KEYSTORE"] = tf.name
+    assert _keystore_args() == [f"--keystore={tf.name}", "--keystore-entry-alias=Morphe"]
+    os.environ.pop("MORPHE_KEYSTORE", None)
+    os.unlink(tf.name)
 
     if len(sys.argv) > 1:  # manual: python morphe.py path\to\app.apk
         print(json.dumps(patch_apk(sys.argv[1]), indent=2))

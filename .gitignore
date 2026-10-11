@@ -12,3 +12,8 @@ dist/
 # local agent + editor state
 .claude/
 Agents/
+
+# signing key (lives only in CI as a secret) + local run logs
+*.keystore
+0_build.txt
+build/

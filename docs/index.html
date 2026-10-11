@@ -1,0 +1,227 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>YT-Morphe Builds</title>
+<meta name="description" content="Signed, per-architecture Morphe-patched YouTube and YouTube Music, rebuilt the moment new patches ship." />
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2032%2032'%3E%3Crect%20width='32'%20height='32'%20rx='6'%20fill='%230c201d'/%3E%3Crect%20x='5'%20y='19'%20width='5'%20height='9'%20fill='%23f2a93b'/%3E%3Crect%20x='13'%20y='11'%20width='5'%20height='17'%20fill='%23f2a93b'/%3E%3Crect%20x='22'%20y='4'%20width='5'%20height='24'%20fill='%23f2a93b'/%3E%3C/svg%3E" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@500;600;800&family=Hanken+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#0c201d; --panel:#0f2a25; --bone:#ede4d1; --dim:#8fa298;
+    --signal:#f2a93b; --on-signal:#190f00; --line:rgba(237,228,209,.14); --line2:rgba(237,228,209,.28);
+    --mono:"Hanken Grotesk",system-ui,sans-serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth}
+  body{background:var(--ink);color:var(--bone);font:400 17px/1.6 "Hanken Grotesk",system-ui,sans-serif;
+    -webkit-font-smoothing:antialiased;overflow-x:hidden}
+  ::selection{background:var(--signal);color:var(--on-signal)}
+  a{color:inherit;text-decoration:none}
+  .num{font-variant-numeric:tabular-nums;letter-spacing:-.01em}
+  .wrap{width:min(1120px,92vw);margin-inline:auto}
+  /* faint engineering grid behind everything */
+  body::before{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;opacity:.5;
+    background:
+      linear-gradient(var(--line) 1px,transparent 1px) 0 0/100% 112px,
+      linear-gradient(90deg,var(--line) 1px,transparent 1px) 0 0/112px 100%;
+    mask-image:radial-gradient(circle at 30% 0,#000,transparent 78%)}
+  /* top bar */
+  .top{display:flex;align-items:center;justify-content:space-between;padding:26px 0;border-bottom:1px solid var(--line)}
+  .mark{display:flex;align-items:center;gap:11px;font-weight:700;letter-spacing:.01em}
+  .mark svg{display:block}
+  .top a.gh{color:var(--dim);font-size:15px;padding-bottom:3px;border-bottom:1px solid transparent;transition:color .25s,border-color .25s}
+  .top a.gh:hover{color:var(--bone);border-color:var(--signal)}
+  /* hero: a status board */
+  .hero{display:grid;grid-template-columns:1fr auto;gap:54px;align-items:center;padding:86px 0 74px;border-bottom:1px solid var(--line)}
+  .kicker{font-size:14px;color:var(--dim);margin-bottom:12px}
+  .readout{font-family:"Big Shoulders Display",sans-serif;font-weight:800;line-height:.84;
+    font-size:clamp(66px,13vw,172px);color:var(--signal);display:block;letter-spacing:.005em}
+  .status{margin-top:18px;color:var(--dim);font-size:16px;max-width:48ch}
+  .status b{color:var(--bone);font-weight:600}
+  .lede{margin-top:38px;font-size:clamp(20px,2.7vw,27px);line-height:1.28;max-width:28ch;font-weight:500}
+  .jump{display:inline-block;margin-top:32px;font-weight:600;border-bottom:2px solid var(--signal);padding-bottom:5px;transition:color .2s}
+  .jump:hover{color:var(--signal)}
+  .meter{display:flex;align-items:flex-end;gap:7px;height:210px}
+  .meter i{width:10px;background:var(--signal);display:block;transform-origin:bottom;animation:vu 2s ease-in-out infinite}
+  @keyframes vu{0%,100%{transform:scaleY(.16)}50%{transform:scaleY(1)}}
+  /* section rhythm */
+  .sec{padding:76px 0;border-bottom:1px solid var(--line)}
+  .sec-h{font-family:"Big Shoulders Display",sans-serif;font-weight:600;font-size:clamp(30px,4.5vw,52px);
+    line-height:1;margin-bottom:34px}
+  .sec-h.sig{color:var(--signal)}
+  /* prerequisite notice */
+  .notice{display:grid;grid-template-columns:auto 1fr;gap:22px;align-items:center;padding:24px;margin-bottom:46px;
+    border:1px solid var(--signal);background:rgba(242,169,59,.06)}
+  .notice .z{font-family:"Big Shoulders Display",sans-serif;font-weight:800;font-size:48px;color:var(--signal);line-height:.8}
+  .notice p{font-size:16px;line-height:1.5}
+  .notice a{color:var(--signal);border-bottom:1px solid var(--signal)}
+  /* downloads ledger */
+  .group{margin-bottom:38px}
+  .group:last-child{margin-bottom:0}
+  .group-h{display:flex;align-items:baseline;justify-content:space-between;gap:16px;padding-bottom:12px;border-bottom:1px solid var(--line2)}
+  .group-h .gn{font-weight:700;font-size:20px}
+  .group-h .gv{color:var(--dim);font-size:14px}
+  .row{display:grid;grid-template-columns:1fr auto 150px;gap:22px;align-items:center;padding:17px 2px;border-bottom:1px solid var(--line);transition:color .2s,padding-left .2s}
+  .row:hover{color:var(--signal);padding-left:12px}
+  .row .arch{font-weight:600;font-size:17px}
+  .row .sz{color:var(--dim);font-size:14px;text-align:right}
+  .row:hover .sz{color:var(--signal)}
+  .row .get{font-size:14px;color:var(--dim);text-align:right}
+  .row:hover .get{color:var(--signal)}
+  /* install sequence */
+  .flow{display:grid}
+  .stepc{display:grid;grid-template-columns:52px 1fr;gap:22px;padding:22px 0;border-bottom:1px solid var(--line);align-items:start}
+  .stepc:last-child{border-bottom:0}
+  .stepc .idx{font-family:"Big Shoulders Display",sans-serif;font-weight:800;font-size:36px;color:var(--signal);line-height:.9}
+  .stepc h3{font-size:19px;font-weight:600;margin-bottom:6px}
+  .stepc p{color:var(--dim);font-size:16px;max-width:62ch}
+  /* pipeline (genuinely sequential, shown as a flow) */
+  .pipe{display:flex;flex-wrap:wrap;gap:12px 12px;align-items:center;font-size:16px;color:var(--dim)}
+  .pipe b{color:var(--bone);font-weight:600}
+  .pipe .ar{color:var(--signal);font-weight:700}
+  /* footer */
+  .foot{display:flex;justify-content:space-between;flex-wrap:wrap;gap:14px;padding:44px 0 64px;color:var(--dim);font-size:14px}
+  .foot a{color:var(--bone);border-bottom:1px solid var(--line2)}
+  .foot a:hover{border-color:var(--signal)}
+  @media (max-width:760px){
+    .hero{grid-template-columns:1fr;gap:28px;padding:60px 0 54px}
+    .meter{height:120px}
+    .row{grid-template-columns:1fr auto}
+    .row .get{display:none}
+  }
+  @media (prefers-reduced-motion:reduce){
+    .meter i{animation:none;transform:scaleY(.6)}
+    html{scroll-behavior:auto}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+<header class="top">
+  <div class="mark">
+    <svg width="22" height="22" viewBox="0 0 22 22" aria-hidden="true">
+      <rect x="1" y="13" width="4" height="8" fill="#f2a93b"/>
+      <rect x="9" y="7" width="4" height="14" fill="#f2a93b"/>
+      <rect x="17" y="1" width="4" height="20" fill="#f2a93b"/>
+    </svg>
+    YT-Morphe Builds
+  </div>
+  <a class="gh" href="https://github.com/meowcalhost/YT-Morphe-Builds" target="_blank" rel="noopener">View the source</a>
+</header>
+
+<section class="hero">
+  <div>
+    <div class="kicker">Latest build</div>
+    <span class="readout num" id="ver" aria-live="polite">········</span>
+    <p class="status" id="status">Reading the pipeline.</p>
+    <p class="lede">Signed, per-architecture YouTube and YouTube Music, rebuilt the moment Morphe ships new patches.</p>
+    <a class="jump" href="#get">See the builds</a>
+  </div>
+  <div class="meter" id="meter" aria-hidden="true"></div>
+</section>
+<!--__BODY2__-->
+<section class="sec" id="get">
+  <h2 class="sec-h sig">Get a build</h2>
+  <div class="notice">
+    <div class="z">00</div>
+    <p><b style="color:var(--bone)">Install MicroG-RE before anything else.</b> Patched apps need Morphe's GmsCore fork to sign in and run. <a href="https://github.com/MorpheApp/MicroG-RE/releases/tag/latest" target="_blank" rel="noopener">Get the latest MicroG-RE</a>, install it, then install any build below.</p>
+  </div>
+  <div id="dls"><p style="color:var(--dim)">Loading builds.</p></div>
+</section>
+
+<section class="sec">
+  <h2 class="sec-h">Then install in three moves</h2>
+  <div class="flow">
+    <div class="stepc"><div class="idx num">01</div><div><h3>Pick your architecture</h3><p>arm64-v8a fits almost every phone made in the last several years. Choose that one if you are unsure.</p></div></div>
+    <div class="stepc"><div class="idx num">02</div><div><h3>Install the APK</h3><p>Open the downloaded file and allow the install. It is already patched and signed, nothing else to configure.</p></div></div>
+    <div class="stepc"><div class="idx num">03</div><div><h3>Sign in through MicroG</h3><p>Open the app and sign in. MicroG handles the Google account side for you.</p></div></div>
+  </div>
+</section>
+
+<section class="sec">
+  <h2 class="sec-h">How each build is made</h2>
+  <div class="pipe">
+    <b>new Morphe patches</b><span class="ar">&rarr;</span><b>resolve the latest compatible version</b><span class="ar">&rarr;</span><b>pull every architecture from APKMirror</b><span class="ar">&rarr;</span><b>patch and re-sign</b><span class="ar">&rarr;</span><b>publish a release</b>
+  </div>
+  <p style="color:var(--dim);margin-top:22px;max-width:64ch">The whole chain runs on a schedule with no one watching it. When Morphe ships nothing new, nothing is published.</p>
+</section>
+
+<footer class="foot">
+  <div>For personal use. Patches and patcher by <a href="https://github.com/MorpheApp" target="_blank" rel="noopener">Morphe</a>.</div>
+  <div><a href="https://github.com/meowcalhost/YT-Morphe-Builds" target="_blank" rel="noopener">Source and releases on GitHub</a></div>
+</footer>
+</div>
+<script>
+const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const REPO = 'meowcalhost/YT-Morphe-Builds';
+const $ = s => document.querySelector(s);
+const MB = b => (b/1048576).toFixed(1) + ' MB';
+const ago = iso => { const s=(Date.now()-Date.parse(iso))/1000, d=Math.floor(s/86400), h=Math.floor(s/3600);
+  return d>0 ? `${d} day${d>1?'s':''} ago` : h>0 ? `${h} hour${h>1?'s':''} ago` : 'moments ago'; };
+const ARCH_ORDER = ['arm64-v8a','armeabi-v7a','x86_64','x86','universal'];
+
+// live meter: varied bars, organic pulse
+(function(){ const m=$('#meter'); if(!m) return;
+  for(let i=0;i<9;i++){ const b=document.createElement('i');
+    b.style.height = (34 + Math.round(Math.random()*66)) + '%';
+    b.style.animationDelay = (-Math.random()*2) + 's';
+    b.style.animationDuration = (1.5 + Math.random()*1.1) + 's';
+    m.appendChild(b); }
+})();
+
+function scramble(el, target){
+  if(reduce){ el.textContent = target; return; }
+  const pool = '0123456789v.'; let f = 0; const total = 26;
+  const id = setInterval(()=>{ f++;
+    const shown = Math.floor(target.length * f / total);
+    el.textContent = target.split('').map((c,i)=> i<shown ? c : pool[Math.floor(Math.random()*pool.length)]).join('');
+    if(f>=total){ clearInterval(id); el.textContent = target; }
+  }, 32);
+}
+
+function groupAssets(assets){
+  const g = {};
+  for(const a of assets){
+    const m = /^(youtube-music|youtube)-([\d.]+)-(.+)\.apk$/i.exec(a.name);
+    if(!m) continue;
+    const app = m[1].toLowerCase();
+    (g[app] ||= {version:m[2], rows:[]}).rows.push({arch:m[3], size:a.size, url:a.browser_download_url});
+  }
+  for(const k in g) g[k].rows.sort((x,y)=>{ const a=ARCH_ORDER.indexOf(x.arch), b=ARCH_ORDER.indexOf(y.arch);
+    return (a<0?9:a)-(b<0?9:b); });
+  return g;
+}
+
+const NAMES = {'youtube':'YouTube', 'youtube-music':'YouTube Music'};
+
+fetch(`https://api.github.com/repos/${REPO}/releases/latest`, {headers:{Accept:'application/vnd.github+json'}})
+  .then(r => { if(!r.ok) throw 0; return r.json(); })
+  .then(rel => {
+    const ver = (/(v?\d[\d.]*\d)/.exec(rel.tag_name)||[,rel.tag_name])[1];
+    scramble($('#ver'), ver);
+    $('#status').innerHTML = `Locked in <b>${ago(rel.published_at)}</b>. The pipeline is still watching Morphe for new patches.`;
+
+    const g = groupAssets((rel.assets||[]).filter(a=>a.name.toLowerCase().endsWith('.apk')));
+    const order = Object.keys(g).sort((a,b)=> (a==='youtube'?0:1)-(b==='youtube'?0:1));
+    const dls = $('#dls');
+    if(!order.length){ dls.innerHTML = '<p style="color:var(--dim)">This release has no APK assets.</p>'; return; }
+    dls.innerHTML = order.map(app => {
+      const grp = g[app];
+      const rows = grp.rows.map(r =>
+        `<a class="row" href="${r.url}"><span class="arch">${r.arch}</span><span class="sz num">${MB(r.size)}</span><span class="get">Download</span></a>`
+      ).join('');
+      return `<div class="group"><div class="group-h"><span class="gn">${NAMES[app]||app}</span><span class="gv num">version ${grp.version}</span></div>${rows}</div>`;
+    }).join('');
+  })
+  .catch(() => {
+    $('#ver').textContent = 'on GitHub';
+    $('#status').innerHTML = 'Could not read the API just now.';
+    $('#dls').innerHTML = `<a class="row" href="https://github.com/${REPO}/releases/latest" target="_blank" rel="noopener"><span class="arch">Open the latest release</span><span class="get">GitHub</span></a>`;
+  });
+</script>
+</body>
+</html>

@@ -1,0 +1,74 @@
+name: build-morphe
+
+# Auto-build patched YouTube / YouTube Music APKs whenever a new Morphe patch
+# release appears. GitHub can't subscribe to another repo's releases, so we poll
+# the latest patches tag and build only when we haven't released it yet.
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "23 */6 * * *"  # every 6h, off the :00 mark
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Resolve latest patches tag
+        id: patches
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          tag=$(gh api repos/MorpheApp/morphe-patches/releases/latest -q .tag_name)
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+          if gh release view "patches-$tag" >/dev/null 2>&1; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Set up Java 21
+        if: steps.patches.outputs.exists == 'false'
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - name: Set up uv + Python
+        if: steps.patches.outputs.exists == 'false'
+        uses: astral-sh/setup-uv@v6
+        with:
+          python-version: "3.11"
+
+      - name: Cache Camoufox browser
+        if: steps.patches.outputs.exists == 'false'
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/camoufox
+          key: camoufox-${{ runner.os }}
+
+      - name: Install deps + fetch browser
+        if: steps.patches.outputs.exists == 'false'
+        run: |
+          uv sync
+          uv run camoufox fetch
+
+      - name: Build per-arch patched APKs
+        if: steps.patches.outputs.exists == 'false'
+        run: uv run python build.py
+
+      - name: Publish GitHub release
+        if: steps.patches.outputs.exists == 'false'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          tag="patches-${{ steps.patches.outputs.tag }}"
+          notes=$(jq -r '"Patches: \(.patches_version) | Patcher: \(.patcher_version)\n\n"
+            + ([.builds[] | "- **\(.app)** \(.version // "n/a"): "
+              + (([.arches[] | select(.ok) | .arch] | join(", ")) // "build failed")] | join("\n"))' dist/manifest.json)
+          gh release create "$tag" dist/*.apk dist/manifest.json \
+            --title "Morphe builds ${{ steps.patches.outputs.tag }}" --notes "$notes" \
+          || gh release upload "$tag" dist/*.apk dist/manifest.json --clobber

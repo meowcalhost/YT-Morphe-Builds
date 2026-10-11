@@ -23,9 +23,19 @@ RELEASES = {
 }
 
 
+def _gh_headers() -> dict:
+    """GitHub API headers; add the token when present so CI calls hit the 5000/hr
+    authenticated limit instead of the 60/hr-per-IP anonymous one."""
+    h = {"User-Agent": "ytexp", "Accept": "application/vnd.github+json"}
+    tok = os.environ.get("GITHUB_TOKEN") or os.environ.get("GH_TOKEN")
+    if tok:
+        h["Authorization"] = f"Bearer {tok}"
+    return h
+
+
 def _latest_asset(api_url: str, suffix: str):
     """(asset_name, download_url) of the newest release asset ending in `suffix`."""
-    req = urllib.request.Request(api_url, headers={"User-Agent": "ytexp", "Accept": "application/vnd.github+json"})
+    req = urllib.request.Request(api_url, headers=_gh_headers())
     with urllib.request.urlopen(req, timeout=30) as r:
         data = json.load(r)
     for a in data.get("assets", []):
